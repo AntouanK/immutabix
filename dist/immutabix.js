@@ -15,11 +15,36 @@ immutabix.getRaw = function () {
 };
 
 
+immutabix.resetRoot = function () {
+  ROOT = Immutable.Map({});
+};
+
+
 immutabix.startServer = function (configuration) {
   console.log("configuration", configuration);
 
   server.start(configuration);
+
+  server.onMessage(function (message) {
+    var command;
+
+    try {
+      command = JSON.parse(message);
+    } catch (err) {
+      throw new Error("message is not JSON!");
+    }
+
+    switch (command.type) {
+
+      case "set":
+        immutabix.set(command.path, command.value);
+        break;
+    }
+  });
 };
+
+
+
 
 
 //  ----------------------------------------- setter

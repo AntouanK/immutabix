@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/AntouanK/immutabix",
   "dependencies": {
+    "consologger": "^0.1.41",
     "immutable": "^3.6.2",
     "websocket": "^1.0.17"
   },

@@ -1,6 +1,7 @@
 
 var WebSocketServer   = require('websocket').server,
     http              = require('http'),
+    log               = require('consologger'),
     immutabixServer,
     callbacksForMessage,
     onMessage,
@@ -28,25 +29,29 @@ onMessage.trigger = (message) => {
 
 offMessage = (callback) => {
 
-  var index = callbacksForMessage.indexOf(callback);
+  var isInTheArray = callbacksForMessage.contains(callback);
 
-  if(typeof callback === 'function' && index > -1){
-    callbacksForMessage =
+  if(typeof callback === 'function' && isInTheArray){
     callbacksForMessage
-    .slice(0, index)
-    .concat(callbacksForMessage.slice(index+1));
+    .splice(index, 1);
   }
 };
 
 
 immutabixServer = () => {
 
-  var start;
+  var start,
+      debug = false;
 
   start = (configuration) => {
 
+    if(configuration.debug){
+      debug = true;
+    }
+
     let server = http.createServer((request, response) => {
-      console.log((new Date()) + ' Received request for ' + request.url);
+      debug &&
+      log.info((new Date()) + ' Received request for ' + request.url);
       response.writeHead(404);
       response.end();
     });
@@ -54,9 +59,8 @@ immutabixServer = () => {
     //  start the HTTP server
     server
     .listen(configuration.port, () => {
-      console
-      .log(`${(new Date())} HTTP server is listening
-            on port ${configuration.port}`);
+      debug &&
+      log.info(`${(new Date())}\n[Server] HTTP server is listening on port ${configuration.port}`);
     });
 
     //  start the websocket server
@@ -70,8 +74,6 @@ immutabixServer = () => {
       autoAcceptConnections: false
     });
 
-    console.log('WebSocketServer started');
-
     let originIsAllowed = (origin) => {
       // put logic here to detect whether the specified origin is allowed.
       return true;
@@ -80,33 +82,38 @@ immutabixServer = () => {
     wsServer
     .on('request', (request) => {
 
-      if (!originIsAllowed(request.origin)) {
-        // Make sure we only accept requests from an allowed origin
-        request.reject();
-        console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
-        return;
-      }
+      // if (!originIsAllowed(request.origin)) {
+      //   // Make sure we only accept requests from an allowed origin
+      //   request.reject();
+      //   console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+      //   return;
+      // }
 
       var connection = request.accept('echo-protocol', request.origin);
-      console.log((new Date()) + ' Connection accepted.');
+      debug &&
+      log.info(`${(new Date())}\n[Server] Websocket connection accepted`);
 
       connection
       .on('message', (message) => {
 
         if (message.type === 'utf8') {
-          console.log('[Server] Received Message: ' + message.utf8Data);
+          debug &&
+          log.data('[Server] Received Message: ' + message.utf8Data);
           onMessage.trigger(message.utf8Data);
           connection.sendUTF(message.utf8Data);
         }
         else if (message.type === 'binary') {
-          console.log('[Server] Received Binary Message of ' + message.binaryData.length + ' bytes');
+          debug &&
+          log.data('[Server] Received Binary Message of ' + message.binaryData.length + ' bytes');
+          onMessage.trigger(message.binaryData);
           connection.sendBytes(message.binaryData);
         }
       });
 
       connection
       .on('close', (reasonCode, description) => {
-        console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+        debug &&
+        log.warning((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
       });
     });
   };
@@ -115,9 +122,10 @@ immutabixServer = () => {
   return {
     start: start,
     onMessage: onMessage,
-    offMessage: offMessage
+    offMessage: offMessage,
+    debug: debug
   };
 };
 
 
-module.exports = immutabixServer;
+module.exports = immutabixServer();
