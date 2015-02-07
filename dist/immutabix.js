@@ -21,8 +21,6 @@ immutabix.resetRoot = function () {
 
 
 immutabix.startServer = function (configuration) {
-  console.log("configuration", configuration);
-
   server.start(configuration);
 
   server.onMessage(function (message) {
@@ -44,13 +42,14 @@ immutabix.startServer = function (configuration) {
 };
 
 
-
-
-
 //  ----------------------------------------- setter
 immutabix.set = function (path, value) {
   if (!Array.isArray(path)) {
     throw new TypeError(".set() expects an Array as 1st argument");
+  }
+
+  if (typeof value === "object") {
+    value = Immutable.fromJS(value);
   }
 
   ROOT = ROOT.setIn(path, value);

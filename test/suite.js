@@ -111,6 +111,11 @@ describe('immutabix', function(){
       whenConnected.resolve();
     });
 
+
+    beforeEach(function(){
+      immutabix.resetRoot();
+    });
+
     //  ------------------------------------------------------------------------
     it('should start a server with the given configuration', function(done){
 
@@ -193,7 +198,6 @@ describe('immutabix', function(){
     });
     //  ------------------------------------------------------------------------
 
-
     //  ------------------------------------------------------------------------
     it( 'should listen to a set command to trigger the set function'+
         ' for an object', function(done){
@@ -219,9 +223,12 @@ describe('immutabix', function(){
 
         setTimeout(function(){
           var rawMap = immutabix.getRaw();
-          var fooValue = immutabix.getRaw().getIn(path);
-          should(fooValue).be.an.Object;
-          fooValue.should.have.property('team', value.team);
+
+          var valueGiven = immutabix.getRaw().getIn(path).toJS();
+          valueGiven.should.have.property('team', value.team);
+
+          var valueTeam = immutabix.getRaw().getIn(path.concat(['team']));
+          valueTeam.should.equal(value.team);
           done();
         }, 20);
 
@@ -230,10 +237,6 @@ describe('immutabix', function(){
     });
     //  ------------------------------------------------------------------------
 
-
-
   });
-
-
 
 });
