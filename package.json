@@ -1,0 +1,30 @@
+{
+  "name": "immutabix",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "make-space": "rm -rf dist && mkdir dist",
+    "build-js": "6to5 --loose all ./src --out-dir ./dist",
+    "build": "npm run make-space && npm run build-js",
+    "test": "mocha test/suite.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AntouanK/immutabix.git"
+  },
+  "author": "Antonis Karamitros @antouank",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AntouanK/immutabix/issues"
+  },
+  "homepage": "https://github.com/AntouanK/immutabix",
+  "dependencies": {
+    "immutable": "^3.6.2",
+    "websocket": "^1.0.17"
+  },
+  "devDependencies": {
+    "6to5": "^3.4.1",
+    "mocha": "^2.1.0"
+  }
+}
