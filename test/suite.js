@@ -23,12 +23,17 @@ describe('immutabix', function(){
       should(immutabix.set).be.a.Function;
     });
 
+    it('should have a .resetRoot function', function(){
+      should(immutabix.resetRoot).be.a.Function;
+    });
+
   });
 
 
 
   describe('immutabix.getRaw()', function(){
 
+    //  ------------------------------------------------------------------------
     it('should return the root immutable map', function(){
 
       var rawMap = immutabix.getRaw();
@@ -36,6 +41,31 @@ describe('immutabix', function(){
       should(rawMap).be.an.Object;
       should(rawMap.toString()).equal('Map {}');
     });
+    //  ------------------------------------------------------------------------
+  });
+
+
+
+  describe('immutabix.resetRoot()', function(){
+
+    //  ------------------------------------------------------------------------
+    it('should reset the root immutable map', function(){
+
+      var rawMap = immutabix.getRaw(),
+          path   = ['foo', 'bar',' baz'],
+          fooValue;
+
+      immutabix.set(path, 'foo-value');
+      fooValue = immutabix.getRaw().getIn(path);
+      should(fooValue).equal('foo-value');
+
+      immutabix.resetRoot();
+      //  get again the root
+      fooValue = immutabix.getRaw().getIn(path);
+      should(fooValue).not.equal('foo-value');
+
+    });
+    //  ------------------------------------------------------------------------
   });
 
 
@@ -162,6 +192,44 @@ describe('immutabix', function(){
 
     });
     //  ------------------------------------------------------------------------
+
+
+    //  ------------------------------------------------------------------------
+    it( 'should listen to a set command to trigger the set function'+
+        ' for an object', function(done){
+
+      var command,
+          path,
+          value;
+
+      path = ['randomFoo', 'randomBar'];
+      value = { team: 'Arsenal FC'};
+
+      command = {
+        type: 'set',
+        path: path,
+        value: value
+      };
+
+      whenConnected
+      .promise
+      .then(function(){
+
+        connection.sendUTF(JSON.stringify(command));
+
+        setTimeout(function(){
+          var rawMap = immutabix.getRaw();
+          var fooValue = immutabix.getRaw().getIn(path);
+          should(fooValue).be.an.Object;
+          fooValue.should.have.property('team', value.team);
+          done();
+        }, 20);
+
+      });
+
+    });
+    //  ------------------------------------------------------------------------
+
 
 
   });

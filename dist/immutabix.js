@@ -15,6 +15,11 @@ immutabix.getRaw = function () {
 };
 
 
+immutabix.resetRoot = function () {
+  ROOT = Immutable.Map({});
+};
+
+
 immutabix.startServer = function (configuration) {
   console.log("configuration", configuration);
 
