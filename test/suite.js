@@ -1,97 +1,58 @@
 
 
-var should            = require('should'),
-    WebSocketClient   = require('websocket').client;
+var should = require('should');
 
 
-describe('Waitwhat', function(){
+describe('immutabix', function(){
 
-  var waitwhat = require('../dist/waitwhat');
+  var immutabix = require('../index');
 
-  describe('library', function(){
+
+  describe('immutabix module', function(){
 
     it('should exist', function(){
-      should.exist(waitwhat);
+      should.exist(immutabix);
     });
 
-    it('should have a configure function', function(){
-      should(waitwhat.configure).be.a.Function;
+    it('should have a .getRaw function', function(){
+      should(immutabix.getRaw).be.a.Function;
     });
 
-    it('should have a configuration exposed', function(){
-      should(waitwhat.configuration).be.an.Object;
+    it('should have a .set function', function(){
+      should(immutabix.set).be.a.Function;
     });
 
-    it('should have a _data property', function(){
-      should(waitwhat._data).exist;
+  });
+
+
+
+  describe('immutabix.getRaw()', function(){
+
+    it('should return the root immutable map', function(){
+
+      var rawMap = immutabix.getRaw();
+
+      should(rawMap).be.an.Object;
+      should(rawMap.toString()).equal('Map {}');
     });
   });
 
 
-  //  ============================================ consumers
-  describe('consumers', function(){
 
-    waitwhat.configure({});
-    waitwhat._server.start();
 
-    it('should be able to connect', function(done){
+  describe('immutabix.set(path, value)', function(){
 
-      var client1 = new WebSocketClient();
-      var client2 = new WebSocketClient();
-      var deferred1 = Promise.defer();
-      var deferred2 = Promise.defer();
-      var promises = [deferred1.promise, deferred2.promise];
+    it('should set a value at the given path', function(){
 
-      Promise
-      .all(promises)
-      .then(function(){ done(); });
+      var rawMap = immutabix.getRaw(),
+          path   = ['foo', 'bar',' baz'];
 
-      client1.on('connect', function(connection) {
-        console.log('WebSocket Client Connected');
-        deferred1.resolve();
-      });
+      immutabix.set(path, 'foo-value');
 
-      client1.connect('ws://localhost:12321/', 'echo-protocol');
+      var fooValue = immutabix.getRaw().getIn(path);
 
-      client2.on('connect', function(connection) {
-        console.log('WebSocket Client Connected');
-        deferred2.resolve();
-      });
-
-      client2.connect('ws://localhost:12321/', 'echo-protocol');
-
+      should(fooValue).equal('foo-value');
     });
-
-    it('should be able to write and read', function(done){
-
-      var client1 = new WebSocketClient();
-      var deferred1 = Promise.defer();
-
-      deferred1
-      .promise
-      .then(function(){ done(); });
-
-      client1.on('connect', function(connection) {
-
-        console.log('WebSocket Client Connected');
-
-        connection.on('message', function(message) {
-          if (message.type === 'utf8') {
-              console.log("[Client 1] Received: '" + message.utf8Data + "'");
-          }
-        });
-
-        var number = Math.round(Math.random() * 0xFFFFFF);
-        connection.sendUTF('1-' + number.toString());
-
-        setTimeout(function(){
-          deferred1.resolve();
-        }, 100);
-      });
-
-      client1.connect('ws://localhost:12321/', 'echo-protocol');
-
-    });
-
   });
+
 });
