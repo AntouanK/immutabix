@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "make-space": "rm -rf dist && mkdir dist",
-    "build-js": "6to5 --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants ./src --out-dir ./dist",
+    "build-js": "6to5 --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants --source-maps ./src --out-dir ./dist",
     "build": "npm run make-space && npm run build-js",
     "test": "mocha test/suite.js"
   },

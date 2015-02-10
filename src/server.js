@@ -2,19 +2,54 @@
 var WebSocketServer   = require('websocket').server,
     http              = require('http'),
     log               = require('consologger'),
-    immutabixServer,
+    startServing,
+    DEBUG_FLAG        = false,
     callbacksForMessage,
     onMessage,
     offMessage,
     getId,
-    connectionsMap,
+    CONNECTIONS_MAP,
+    connections,
     pushMessage,
-    checkIfCommand;
+    checkIfCommand,
+    httpHandler,
+    setDebug;
 
 
 
-connectionsMap = new Map();
+CONNECTIONS_MAP = new Map();
 
+
+//  -------------------------------------------------   connections
+connections = {};
+
+//  -------------------------------------------------   connections.get
+connections.get = (id) => {
+  let value = CONNECTIONS_MAP.get(id);
+  return value;
+};
+
+//  -------------------------------------------------   connections.has
+connections.has = (id) => {
+  let boolean = CONNECTIONS_MAP.has(id);
+  return boolean;
+};
+
+//  -------------------------------------------------   connections.set
+connections.set = (key, value) => {
+  let setResult = CONNECTIONS_MAP.set(key, value);
+  return setResult;
+};
+
+//  -------------------------------------------------   connections.delete
+connections.delete = (id) => {
+  let deleteResult = CONNECTIONS_MAP.delete(id);
+  return deleteResult;
+};
+
+
+//  -------------------------------------------------   getId
+//  id generator
 getId = (function*() {
   var counter = 0;
 
@@ -25,6 +60,7 @@ getId = (function*() {
 })();
 
 
+//  -------------------------------------------------   checkIfCommand
 //  check if an incoming message is a valid command
 checkIfCommand = (command) => {
 
@@ -42,9 +78,30 @@ checkIfCommand = (command) => {
 };
 
 
+//  -------------------------------------------------   pushMessage
+pushMessage = (connectionId, message) => {
+
+  //  check if that connection exists
+  if(!connections.has(connectionId)){
+    DEBUG_FLAG &&
+    log.error(`Connection with id ${connectionId} was not found!`);
+    return false;
+  }
+
+
+  connections
+  .get(connectionId)
+  .sendUTF( JSON.stringify(message) );
+
+  DEBUG_FLAG &&
+  log.info(`[Server][Connection id ${connectionId}] Message sent`);
+};
+
+
 //  keep an array with the callbacks
 callbacksForMessage = [];
 
+//  -------------------------------------------------   onMessage
 onMessage = (callback) => {
 
   if(typeof callback === 'function'){
@@ -78,6 +135,7 @@ onMessage.trigger = (input) => {
 
 };
 
+//  -------------------------------------------------   offMessage
 offMessage = (callback) => {
 
   var isInTheArray = callbacksForMessage.contains(callback);
@@ -89,31 +147,23 @@ offMessage = (callback) => {
 };
 
 
+//  -------------------------------------------------   httpHandler
+//  handle any HTTP requests we may have
+httpHandler = (request, response) => {
+  DEBUG_FLAG &&
+  log.info((new Date()) + ' Received request for ' + request.url);
+  response.writeHead(404);
+  response.end();
+};
 
-// =========================================================  immutabixServer
-immutabixServer = () => {
 
-  var start,
-      pushMessage,
-      debug = false,
-      setDebug;
+// // =========================================================  immutabixServer
+// immutabixServer = () => {
+//
+//   var start,
+//       DEBUG_FLAG = false,
+//       setDebug;
 
-
-  pushMessage = (connectionId, message) => {
-
-    //  check if that connection exists
-    if(!connectionsMap.has(connectionId)){
-      debug &&
-      log.error(`Connection with id ${connectionId} was not found!`);
-      return false;
-    }
-
-    var thatConnection = connectionsMap.get(connectionId);
-    thatConnection.sendUTF( JSON.stringify(message) );
-
-    debug &&
-    log.info(`[Server][Connection id ${connectionId}] Message sent`);
-  };
 
   //  start an HTTP server
   //  start a websocket server
@@ -121,114 +171,97 @@ immutabixServer = () => {
   //  - when a new websocket connection is made, the id is added on the map
   //  - when a message is received, onMessage.trigger is called
   //    with connection id and the message
-  start = (configuration) => {
+startServing = (configuration) => {
 
-    if(configuration.debug){
-      debug = true;
+  if(typeof configuration.DEBUG_FLAG === 'boolean'){
+    DEBUG_FLAG = configuration.debug;
+  }
+
+  //  just bounce back HTTP requests
+  const server = http.createServer(httpHandler);
+
+  //  start the HTTP server
+  server.listen(configuration.port);
+
+  //  start the websocket server
+  const wsServer = new WebSocketServer({
+    httpServer: server,
+    // You should not use autoAcceptConnections for production
+    // applications, as it defeats all standard cross-origin protection
+    // facilities built into the protocol and the browser.  You should
+    // *always* verify the connection's origin and decide whether or not
+    // to accept it.
+    autoAcceptConnections: false
+  });
+
+  // put logic here to detect whether the specified origin is allowed.
+  const originIsAllowed = (origin) => { return true; };
+
+  wsServer
+  .on('request', (request) => {
+
+    if (!originIsAllowed(request.origin)) {
+      // Make sure we only accept requests from an allowed origin
+      request.reject();
+      DEBUG_FLAG &&
+      log.error((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+      return;
     }
 
-    var server,
-        wsServer,
-        originIsAllowed;
+    var connection = request.accept('echo-protocol', request.origin),
+        connectionId = getId.next().value;
 
-    //  just bounce back HTTP requests
-    server = http.createServer((request, response) => {
-      debug &&
-      log.info((new Date()) + ' Received request for ' + request.url);
-      response.writeHead(404);
-      response.end();
-    });
+    connections.set(connectionId, connection);
 
-    //  start the HTTP server
-    server
-    .listen(configuration.port, () => {
-      debug &&
-      log.info(`${(new Date())}\n[Server] HTTP server is listening on port ${configuration.port}`);
-    });
+    DEBUG_FLAG &&
+    log.info(`${(new Date())}\n[Server] Websocket connection accepted`);
 
-    //  start the websocket server
-    wsServer = new WebSocketServer({
-      httpServer: server,
-      // You should not use autoAcceptConnections for production
-      // applications, as it defeats all standard cross-origin protection
-      // facilities built into the protocol and the browser.  You should
-      // *always* verify the connection's origin and decide whether or not
-      // to accept it.
-      autoAcceptConnections: false
-    });
+    connection
+    .on('message', (message) => {
 
-    originIsAllowed = (origin) => {
-      // put logic here to detect whether the specified origin is allowed.
-      return true;
-    };
+      var messageData;
 
-    wsServer
-    .on('request', (request) => {
+      if (message.type === 'utf8') {
 
-      if (!originIsAllowed(request.origin)) {
-        // Make sure we only accept requests from an allowed origin
-        request.reject();
-        debug &&
-        log.error((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
-        return;
+        DEBUG_FLAG &&
+        log.data('[Server] Received Message: ' + message.utf8Data);
+
+        messageData = message.utf8Data
+      }
+      else if (message.type === 'binary') {
+
+        DEBUG_FLAG &&
+        log.data('[Server] Received Binary Message of ' + message.binaryData.length + ' bytes');
+
+        messageData = message.binaryData;
       }
 
-      var connection = request.accept('echo-protocol', request.origin),
-          connectionId = getId.next().value;
-
-      connectionsMap.set(connectionId, connection);
-
-      debug &&
-      log.info(`${(new Date())}\n[Server] Websocket connection accepted`);
-
-      connection
-      .on('message', (message) => {
-
-        var messageData;
-
-        if (message.type === 'utf8') {
-
-          debug &&
-          log.data('[Server] Received Message: ' + message.utf8Data);
-
-          messageData = message.utf8Data
-        }
-        else if (message.type === 'binary') {
-
-          debug &&
-          log.data('[Server] Received Binary Message of ' + message.binaryData.length + ' bytes');
-
-          messageData = message.binaryData;
-        }
-
-        onMessage.trigger({
-          connectionId: connectionId,
-          message: messageData
-        });
-      });
-
-      connection
-      .on('close', (reasonCode, description) => {
-        debug &&
-        log.warning((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-        connectionMap.delete(connectionId);
+      onMessage.trigger({
+        connectionId: connectionId,
+        message: messageData
       });
     });
-  };
 
-
-  setDebug = (boolean) => {
-    debug = !!boolean;
-  };
-
-  return {
-    start: start,
-    onMessage: onMessage,
-    offMessage: offMessage,
-    pushMessage: pushMessage,
-    setDebug: setDebug
-  };
+    connection
+    .on('close', (reasonCode, description) => {
+      DEBUG_FLAG &&
+      log.warning((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+      connections.delete(connectionId);
+    });
+  });
 };
 
 
-module.exports = immutabixServer();
+setDebug = (boolean) => {
+  DEBUG_FLAG = !!boolean;
+};
+
+
+
+module.exports = {
+  startServing: startServing,
+  onMessage: onMessage,
+  offMessage: offMessage,
+  pushMessage: pushMessage,
+  setDebug: setDebug
+};

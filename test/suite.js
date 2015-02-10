@@ -229,6 +229,7 @@ describe('immutabix', function(){
     //  ------------------------------------------------------------------------
     // it( 'should listen to a ref command and return the ref', function(done){
     //
+    //   console.log('---- starting test for `ref` command with error');
     //   var command,
     //       path,
     //       value;
