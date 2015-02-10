@@ -95,7 +95,8 @@ describe('immutabix', function(){
         client,
         connection,
         whenConnected,
-        immuServer;
+        immuServer,
+        resolveConnection;
 
     whenConnected = Promise.defer();
 
@@ -106,11 +107,12 @@ describe('immutabix', function(){
 
     client = new WebSocketClient();
 
-    client
-    .on('connect', function(thisConnection) {
+    resolveConnection = function(thisConnection) {
       connection = thisConnection;
       whenConnected.resolve();
-    });
+    };
+
+    client.on('connect', resolveConnection);
 
 
     beforeEach(function(){
@@ -204,21 +206,22 @@ describe('immutabix', function(){
       .promise
       .then(function(){
 
-        connection.on('message', function(message) {
+        var onMessage = function(message) {
 
           var messageObj = JSON.parse(message.utf8Data);
-
-          // if (message.type === 'utf8') {
-          //   console.log("[Client on test] Received: '" + message.utf8Data + "'");
-          // }
 
           should(messageObj.command).equal('ref');
           should(messageObj.path).be.an.Array;
           should(messageObj.path[0]).equal(path[0]);
           should(messageObj.error).be.True;
+
+          connection.removeListener('message', onMessage);
+
           console.log('---- ending test for `ref` command with error');
           done();
-        });
+        };
+
+        connection.on('message', onMessage);
 
         connection.sendUTF(JSON.stringify(command));
       });
@@ -227,39 +230,67 @@ describe('immutabix', function(){
 
 
     //  ------------------------------------------------------------------------
-    // it( 'should listen to a ref command and return the ref', function(done){
-    //
-    //   var command,
-    //       path,
-    //       value;
-    //
-    //   path = ['events', 'list', '1'];
-    //
-    //   immutabix.set(path, {
-    //     id: 1,
-    //     list: ['foo', 'bar'],
-    //     time: Date.now()
-    //   });
-    //
-    //   command = {
-    //     type: 'ref',
-    //     path: path
-    //   };
-    //
-    //   whenConnected
-    //   .promise
-    //   .then(function(){
-    //
-    //     connection.on('message', function(message) {
-    //       if (message.type === 'utf8') {
-    //         console.log("[Client on test] Received: '" + message.utf8Data + "'");
-    //         done();
-    //       }
-    //     });
-    //
-    //     connection.sendUTF(JSON.stringify(command));
-    //   });
-    // });
+    it( 'should listen to a ref command and return the ref', function(done){
+
+      console.log('---- starting test for `ref` command with changes');
+      var command,
+          path,
+          value,
+          count = 0;
+
+      path = ['events', 'list', '1'];
+
+      whenConnected
+      .promise
+      .then(function(){
+
+        var onMessage = function(message) {
+
+          count += 1;
+
+          if(count === 3){
+            var objMessage = JSON.parse(message.utf8Data).value;
+            should(objMessage).have.a.property('test', 'haha');
+            connection.removeListener('message', onMessage);
+            console.log('---- ending test for `ref` command with changes');
+            done();
+          }
+        };
+
+        connection.on('message', onMessage);
+
+        connection.sendUTF(JSON.stringify(command));
+      });
+
+      immutabix.set(path, {
+        id: 1,
+        list: ['foo', 'bar'],
+        time: Date.now()
+      });
+
+      setTimeout(function(){
+        immutabix.set(path, {
+          id: 1,
+          list: null,
+          time: Date.now()
+        });
+      }, 10);
+
+      setTimeout(function(){
+        immutabix.set(path, {
+          id: 1,
+          test: 'haha',
+          list: null,
+          time: Date.now()
+        });
+      }, 10);
+
+      command = {
+        type: 'ref',
+        path: path
+      };
+
+    });
     //  ------------------------------------------------------------------------
 
 
