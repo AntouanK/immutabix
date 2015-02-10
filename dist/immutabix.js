@@ -9,7 +9,8 @@ var Immutable = require("immutable"),
     pathConnectionMap,
     pathValueMap,
     pathPreviousValueMap,
-    triggerListeners;
+    triggerListeners,
+    toKey;
 
 //  main root reference
 ROOT = Immutable.Map({});
@@ -18,6 +19,11 @@ pathConnectionMap = new Map();
 pathValueMap = new Map();
 pathPreviousValueMap = new Map();
 
+toKey = function (path) {
+  return _tailCall(path.join, ["/"], path);
+};
+
+
 //  ----------------------------------------- triggerListeners
 triggerListeners = function () {
   Immutable.Seq(pathConnectionMap.entries()).filter(function (entry) {
@@ -25,8 +31,8 @@ triggerListeners = function () {
 
     return pathPreviousValueMap.get(path) !== pathValueMap.get(path);
   }).forEach(function (entry) {
-    var path = entry[1];
-    var connectionId = entry[0];
+    var path = entry[0];
+    var connectionIds = entry[1];
     //  make the message to be pushed to the listener
     var msg = {
       command: "ref",
@@ -34,7 +40,10 @@ triggerListeners = function () {
       value: pathValueMap.get(path)
     };
 
-    server.pushMessage(connectionId, msg);
+
+    connectionIds.forEach(function (connectionId) {
+      server.pushMessage(connectionId, msg);
+    });
   });
 };
 
@@ -63,21 +72,21 @@ immutabix.set = function (path, value) {
 
 
   //  map the previous value
-  pathPreviousValueMap.set(path, value);
+  pathPreviousValueMap.set(toKey(path), pathValueMap.get(toKey(path)));
 
   //  set the value
   ROOT = ROOT.setIn(path, value);
 
   //  map the current value
-  pathValueMap.set(path, value);
+  pathValueMap.set(toKey(path), value);
 
   //  trigger the listeners
-  triggerListeners(pathConnectionMap, pathValueMap);
+  triggerListeners();
 };
 
 
 //  ----------------------------------------- get reference
-immutabix.ref = function (path) {
+immutabix.ref = function (path, connectionId) {
   if (!Array.isArray(path)) {
     throw new TypeError(".set() expects an Array as 1st argument");
   }
@@ -86,7 +95,8 @@ immutabix.ref = function (path) {
     return undefined;
   }
 
-  return _tailCall(ROOT.getIn, [path], ROOT);
+  immutabix.registerOnPath(path, connectionId);
+  triggerListeners();
 };
 
 
@@ -104,7 +114,7 @@ immutabix.registerOnPath = function (path, connectionId) {
     throw new Error(`there is nothing in path:${ path }`);
   }
 
-  var key = path.join("/");
+  var key = toKey(path);
 
   if (pathConnectionMap.has(key)) {
     pathConnectionMap.set(key, pathConnectionMap.get(key).concat([connectionId]));
@@ -171,7 +181,7 @@ immutabix.startServer = function (configuration) {
           server.pushMessage(input.connectionId, msg);
         }
 
-        var ref = immutabix.ref(command.path);
+        var ref = immutabix.ref(command.path, input.connectionId);
 
         break;
     }

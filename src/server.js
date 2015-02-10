@@ -88,7 +88,6 @@ pushMessage = (connectionId, message) => {
     return false;
   }
 
-
   connections
   .get(connectionId)
   .sendUTF( JSON.stringify(message) );

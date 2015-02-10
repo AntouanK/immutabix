@@ -87,7 +87,6 @@ pushMessage = function (connectionId, message) {
     return false;
   }
 
-
   connections.get(connectionId).sendUTF(JSON.stringify(message));
 
   DEBUG_FLAG && log.info(`[Server][Connection id ${ connectionId }] Message sent`);

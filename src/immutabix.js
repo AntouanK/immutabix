@@ -6,7 +6,8 @@ var Immutable = require('immutable'),
     pathConnectionMap,
     pathValueMap,
     pathPreviousValueMap,
-    triggerListeners;
+    triggerListeners,
+    toKey;
 
 //  main root reference
 ROOT = Immutable.Map({});
@@ -14,6 +15,9 @@ ROOT = Immutable.Map({});
 pathConnectionMap     = new Map();
 pathValueMap          = new Map();
 pathPreviousValueMap  = new Map();
+
+toKey = (path) => { return path.join('/'); };
+
 
 //  ----------------------------------------- triggerListeners
 triggerListeners = () => {
@@ -27,8 +31,8 @@ triggerListeners = () => {
     })
     .forEach( entry => {
 
-      let path = entry[1];
-      let connectionId = entry[0];
+      let path = entry[0];
+      let connectionIds = entry[1];
       //  make the message to be pushed to the listener
       let msg = {
                   command: 'ref',
@@ -36,11 +40,12 @@ triggerListeners = () => {
                   value: pathValueMap.get(path)
                 };
 
-      server
-      .pushMessage(connectionId, msg);
 
+      connectionIds
+      .forEach( (connectionId) => {
+        server.pushMessage(connectionId, msg);
+      });
     });
-
 };
 
 
@@ -69,21 +74,21 @@ immutabix.set = (path, value) => {
 
 
   //  map the previous value
-  pathPreviousValueMap.set(path, value);
+  pathPreviousValueMap.set(toKey(path), pathValueMap.get(toKey(path)));
 
   //  set the value
   ROOT = ROOT.setIn(path, value);
 
   //  map the current value
-  pathValueMap.set(path, value);
+  pathValueMap.set(toKey(path), value);
 
   //  trigger the listeners
-  triggerListeners(pathConnectionMap, pathValueMap);
+  triggerListeners();
 };
 
 
 //  ----------------------------------------- get reference
-immutabix.ref = (path) => {
+immutabix.ref = (path, connectionId) => {
 
   if(!Array.isArray(path)){
     throw new TypeError('.set() expects an Array as 1st argument');
@@ -93,7 +98,8 @@ immutabix.ref = (path) => {
     return undefined;
   }
 
-  return ROOT.getIn(path);
+  immutabix.registerOnPath(path, connectionId);
+  triggerListeners();
 };
 
 
@@ -112,7 +118,7 @@ immutabix.registerOnPath = (path, connectionId) => {
     throw new Error(`there is nothing in path:${path}`);
   }
 
-  var key = path.join('/');
+  var key = toKey(path);
 
   if(pathConnectionMap.has(key)){
     pathConnectionMap.set(
@@ -187,7 +193,7 @@ immutabix.startServer = (configuration) => {
           .pushMessage(input.connectionId, msg);
         }
 
-        let ref = immutabix.ref(command.path);
+        let ref = immutabix.ref(command.path, input.connectionId);
 
         break;
     }
