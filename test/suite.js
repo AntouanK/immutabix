@@ -1,7 +1,7 @@
 
 
-var should        = require('should'),
-WebSocketClient   = require('websocket').client;
+var should            = require('should'),
+    WebSocketClient   = require('websocket').client;
 
 
 describe('immutabix', function(){
@@ -94,7 +94,8 @@ describe('immutabix', function(){
     var configuration,
         client,
         connection,
-        whenConnected;
+        whenConnected,
+        immuServer;
 
     whenConnected = Promise.defer();
 
@@ -119,7 +120,7 @@ describe('immutabix', function(){
     //  ------------------------------------------------------------------------
     it('should start a server with the given configuration', function(done){
 
-      immutabix.startServer(configuration);
+      immuServer = immutabix.startServer(configuration);
 
       client.connect('ws://localhost:44444/', 'echo-protocol');
 
@@ -130,20 +131,20 @@ describe('immutabix', function(){
     //  ------------------------------------------------------------------------
 
     //  ------------------------------------------------------------------------
-    it( 'should listen to a set command to trigger the set function'+
-        ' for a number value', function(done){
+    it( 'should listen to a set command to trigger the set function', function(done){
 
+      console.log('---- starting test for `set` command');
       var command,
           path,
           value;
 
-      path = ['anotherFoo', 'anotherBar'];
+      path = ['aList', 1, 'title'];
       value = Math.random();
 
       command = {
         type: 'set',
-        path: path,
-        value: value
+        path: ['aList'],
+        value: [{ title: 'thing0' }, { bla: 'bla' }]
       };
 
       whenConnected
@@ -155,87 +156,113 @@ describe('immutabix', function(){
         setTimeout(function(){
           var rawMap = immutabix.getRaw();
           var fooValue = immutabix.getRaw().getIn(path);
-          should(fooValue).equal(value);
-          done();
+          should(fooValue).not.exist;
+
+          //  send 2nd command
+          command = {
+            type: 'set',
+            path: ['aList'],
+            value: [{ title: 'thing0' }, { title: 'thing1'}, { title: 'thing2'}]
+          };
+
+          connection.sendUTF(JSON.stringify(command));
+
         }, 20);
+
+        setTimeout(function(){
+
+          var rawMap = immutabix.getRaw();
+          var valueGiven = rawMap.getIn(path);
+          valueGiven.should.equal('thing1');
+
+          console.log('---- end test for `set` command');
+          done();
+        }, 40);
 
       });
     });
     //  ------------------------------------------------------------------------
 
-    //  ------------------------------------------------------------------------
-    it( 'should listen to a set command to trigger the set function'+
-        ' for a string value', function(done){
 
+    //  ------------------------------------------------------------------------
+    it( 'should listen to a ref command and return error '+
+        'with a wrong path', function(done){
+
+      console.log('---- starting test for `ref` command with error');
       var command,
           path,
           value;
 
-      path = ['anotherFoo', 'anotherBar'];
-      value = '' + Math.random();
+      path = ['events', 'list', '1'];
 
       command = {
-        type: 'set',
-        path: path,
-        value: value
+        type: 'ref',
+        path: path
       };
 
       whenConnected
       .promise
       .then(function(){
 
-        connection.sendUTF(JSON.stringify(command));
+        connection.on('message', function(message) {
 
-        setTimeout(function(){
-          var rawMap = immutabix.getRaw();
-          var fooValue = immutabix.getRaw().getIn(path);
-          should(fooValue).equal(value);
+          var messageObj = JSON.parse(message.utf8Data);
+
+          // if (message.type === 'utf8') {
+          //   console.log("[Client on test] Received: '" + message.utf8Data + "'");
+          // }
+
+          should(messageObj.command).equal('ref');
+          should(messageObj.path).be.an.Array;
+          should(messageObj.path[0]).equal(path[0]);
+          should(messageObj.error).be.True;
+          console.log('---- ending test for `ref` command with error');
           done();
-        }, 20);
+        });
 
+        connection.sendUTF(JSON.stringify(command));
       });
-
     });
     //  ------------------------------------------------------------------------
 
+
     //  ------------------------------------------------------------------------
-    it( 'should listen to a set command to trigger the set function'+
-        ' for an object', function(done){
-
-      var command,
-          path,
-          value;
-
-      path = ['randomFoo', 'randomBar'];
-      value = { team: 'Arsenal FC'};
-
-      command = {
-        type: 'set',
-        path: path,
-        value: value
-      };
-
-      whenConnected
-      .promise
-      .then(function(){
-
-        connection.sendUTF(JSON.stringify(command));
-
-        setTimeout(function(){
-          var rawMap = immutabix.getRaw();
-
-          var valueGiven = immutabix.getRaw().getIn(path).toJS();
-          valueGiven.should.have.property('team', value.team);
-
-          var valueTeam = immutabix.getRaw().getIn(path.concat(['team']));
-          valueTeam.should.equal(value.team);
-          done();
-        }, 20);
-
-      });
-
-    });
+    // it( 'should listen to a ref command and return the ref', function(done){
+    //
+    //   var command,
+    //       path,
+    //       value;
+    //
+    //   path = ['events', 'list', '1'];
+    //
+    //   immutabix.set(path, {
+    //     id: 1,
+    //     list: ['foo', 'bar'],
+    //     time: Date.now()
+    //   });
+    //
+    //   command = {
+    //     type: 'ref',
+    //     path: path
+    //   };
+    //
+    //   whenConnected
+    //   .promise
+    //   .then(function(){
+    //
+    //     connection.on('message', function(message) {
+    //       if (message.type === 'utf8') {
+    //         console.log("[Client on test] Received: '" + message.utf8Data + "'");
+    //         done();
+    //       }
+    //     });
+    //
+    //     connection.sendUTF(JSON.stringify(command));
+    //   });
+    // });
     //  ------------------------------------------------------------------------
+
+
 
   });
 

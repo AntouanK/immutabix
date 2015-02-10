@@ -14,29 +14,53 @@ immutabix.getRaw = () => {
 };
 
 
+//  ----------------------------------------- reset ROOT
 immutabix.resetRoot = () => {
   ROOT = Immutable.Map({});
 };
 
 
+//  ----------------------------------------- start server
 immutabix.startServer = (configuration) => {
 
   server.start(configuration);
 
-  server.onMessage((message) => {
+  //  when the server receives a message...
+  //
+  //  input : {
+  //    connectionId: <number>,
+  //    command: <command>
+  //  }
+  server.onMessage((input) => {
 
-    var command;
-
-    try {
-      command = JSON.parse(message);
-    } catch(err) {
-      throw new Error('message is not JSON!');
+    if(input.command === undefined){
+      return false;
     }
+
+    //  break down the incoming data
+    var command = input.command;
 
     switch(command.type){
 
       case 'set':
         immutabix.set(command.path, command.value);
+        break;
+
+      case 'ref':
+
+        let ref = immutabix.ref(command.path);
+        let msg = {
+                    command: 'ref',
+                    path: command.path,
+                    error: true
+                  };
+
+        if(ref === undefined){
+          console.log('pushing error')
+          server
+          .pushMessage(input.connectionId, msg);
+        }
+
         break;
     }
 
@@ -60,12 +84,18 @@ immutabix.set = (path, value) => {
 
 
 //  ----------------------------------------- get reference
-// immutabix.ref = (path) => {
-//
-//   if(!Array.isArray(path)){
-//     throw new TypeError('.set() expects an Array as 1st argument');
-//   }
-// };
+immutabix.ref = (path) => {
+
+  if(!Array.isArray(path)){
+    throw new TypeError('.set() expects an Array as 1st argument');
+  }
+
+  if(!ROOT.hasIn(path)){
+    return undefined;
+  }
+
+  return ROOT.getIn(path);
+};
 
 
 module.exports = immutabix;
