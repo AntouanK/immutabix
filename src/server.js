@@ -20,8 +20,9 @@ var WebSocketServer   = require('websocket').server,
 CONNECTIONS_MAP = new Map();
 
 
-//  -------------------------------------------------   connections
+//  -------------------------------------------------   (connections)
 connections = {};
+
 
 //  -------------------------------------------------   connections.get
 connections.get = (id) => {
@@ -156,20 +157,13 @@ httpHandler = (request, response) => {
 };
 
 
-// // =========================================================  immutabixServer
-// immutabixServer = () => {
+//  -------------------------------------------------   startServing
+//  start an HTTP server
+//  start a websocket server
 //
-//   var start,
-//       DEBUG_FLAG = false,
-//       setDebug;
-
-
-  //  start an HTTP server
-  //  start a websocket server
-  //
-  //  - when a new websocket connection is made, the id is added on the map
-  //  - when a message is received, onMessage.trigger is called
-  //    with connection id and the message
+//  - when a new websocket connection is made, the id is added on the map
+//  - when a message is received, onMessage.trigger is called
+//    with connection id and the message
 startServing = (configuration) => {
 
   if(typeof configuration.DEBUG_FLAG === 'boolean'){
@@ -251,12 +245,13 @@ startServing = (configuration) => {
 };
 
 
+//  -------------------------------------------------   setDebug
 setDebug = (boolean) => {
   DEBUG_FLAG = !!boolean;
 };
 
 
-
+//  =================================================================== exports
 module.exports = {
   startServing: startServing,
   onMessage: onMessage,
