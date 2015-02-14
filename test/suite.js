@@ -135,7 +135,7 @@ describe('immutabix', function(){
     //  ------------------------------------------------------------------------
     it( 'should listen to a set command to trigger the set function', function(done){
 
-      console.log('---- starting test for `set` command');
+      console.log('\n---- starting test for `set` command');
       var command,
           path,
           value;
@@ -190,7 +190,7 @@ describe('immutabix', function(){
     it( 'should listen to a ref command and return error '+
         'with a wrong path', function(done){
 
-      console.log('---- starting test for `ref` command with error');
+      console.log('\n---- starting test for `ref` command with error');
       var command,
           path,
           value;
@@ -232,13 +232,18 @@ describe('immutabix', function(){
     //  ------------------------------------------------------------------------
     it( 'should listen to a ref command and return the ref', function(done){
 
-      console.log('---- starting test for `ref` command with changes');
+      console.log('\n---- starting test for `ref` command with changes');
       var command,
           path,
           value,
           count = 0;
 
       path = ['events', 'list', '1'];
+
+      command = {
+        type: 'ref',
+        path: path
+      };
 
       whenConnected
       .promise
@@ -253,7 +258,8 @@ describe('immutabix', function(){
             should(objMessage).have.a.property('test', 'haha');
             connection.removeListener('message', onMessage);
             console.log('---- ending test for `ref` command with changes');
-            done();
+
+            setTimeout(function(){ done(); }, 200);
           }
         };
 
@@ -283,12 +289,7 @@ describe('immutabix', function(){
           list: null,
           time: Date.now()
         });
-      }, 10);
-
-      command = {
-        type: 'ref',
-        path: path
-      };
+      }, 20);
 
     });
     //  ------------------------------------------------------------------------

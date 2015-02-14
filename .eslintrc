@@ -1,0 +1,19 @@
+{
+  "env": {
+    "browser": false,
+    "node": true
+  },
+  "ecmaFeatures": {
+    "arrowFunctions": true,
+    "blockBindings": true,
+    "generators": true,
+    "templateStrings": true
+  },
+  "rules": {
+    "semi": 2,
+    "no-multi-spaces": 0,
+    "no-constant-condition": 0,
+    "quotes": "single",
+    "new-cap": 0
+  }
+}

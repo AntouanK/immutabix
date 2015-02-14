@@ -1,7 +1,10 @@
 
+'use strict';
+
 var Immutable = require('immutable'),
-    server    = require('./server'),
-    immutabix = {},
+    server    = require('./server');
+
+var immutabix = {},
     ROOT,
     pathConnectionMap,
     pathValueMap,
@@ -17,6 +20,20 @@ pathValueMap          = new Map();
 pathPreviousValueMap  = new Map();
 
 toKey = (path) => { return path.join('/'); };
+
+
+/**
+*                         API
+* .getRaw()
+* .resetRoot()
+* .set(path, value)
+* .ref(path, connectionId)
+* .unref(path, connectionId)
+* .registerOnPath(path, connectionId)
+* .deregisterOnPath(path, connectionId)
+* .startServer(configuration)
+*
+*/
 
 
 //  ----------------------------------------- triggerListeners
@@ -49,19 +66,19 @@ triggerListeners = () => {
 };
 
 
-//  ----------------------------------------- get raw
+//  ----------------------------------------- getRaw
 immutabix.getRaw = () => {
   return ROOT;
 };
 
 
-//  ----------------------------------------- reset ROOT
+//  ----------------------------------------- resetRoot
 immutabix.resetRoot = () => {
   ROOT = Immutable.Map({});
 };
 
 
-//  ----------------------------------------- setter
+//  ----------------------------------------- set
 immutabix.set = (path, value) => {
 
   if(!Array.isArray(path)){
@@ -87,7 +104,7 @@ immutabix.set = (path, value) => {
 };
 
 
-//  ----------------------------------------- get reference
+//  ----------------------------------------- ref
 immutabix.ref = (path, connectionId) => {
 
   if(!Array.isArray(path)){
@@ -100,6 +117,17 @@ immutabix.ref = (path, connectionId) => {
 
   immutabix.registerOnPath(path, connectionId);
   triggerListeners();
+};
+
+
+//  ----------------------------------------- unref
+immutabix.unref = (path, connectionId) => {
+
+  if(!Array.isArray(path)){
+    throw new TypeError('.set() expects an Array as 1st argument');
+  }
+
+  immutabix.deregisterOnPath(path, connectionId);
 };
 
 
@@ -118,9 +146,13 @@ immutabix.registerOnPath = (path, connectionId) => {
     throw new Error(`there is nothing in path:${path}`);
   }
 
+  //  convert the path array to a key string
   var key = toKey(path);
 
+  //  if that key is already with one or more listeners...
   if(pathConnectionMap.has(key)){
+    //  add the key in the map, pointing to the connections
+    //  listening to it, merged in one array
     pathConnectionMap.set(
       key,
       pathConnectionMap.get(key).concat([connectionId])
@@ -135,7 +167,6 @@ immutabix.registerOnPath = (path, connectionId) => {
 };
 
 
-
 //  ----------------------------------------- deregisterOnPath
 immutabix.deregisterOnPath = (path, connectionId) => {
 
@@ -147,13 +178,34 @@ immutabix.deregisterOnPath = (path, connectionId) => {
     throw new Error('.deregisterOnPath(path, connectionId) needs `connectionId` to be an Number');
   }
 
-  //  TODO <<<<-------------
-};
+  //  convert the path array to a key string
+  var key = toKey(path);
 
+  //  if that key is already with one or more listeners...
+  if(pathConnectionMap.has(key)){
+
+    let connectionsArray = pathConnectionMap.get(key);
+    let indexOfOurConnection = connectionsArray.indexOf(connectionId);
+
+    //  if our connection id is in that array, remove it
+    if(indexOfOurConnection > -1){
+
+      //  remove that element
+      connectionsArray.splice(indexOfOurConnection, 1);
+
+      pathConnectionMap.set(
+        key,
+        connectionsArray
+      );
+    }
+  }
+};
 
 
 //  ----------------------------------------- start server
 immutabix.startServer = (configuration) => {
+
+  server.setDebug(!!configuration.debug);
 
   server.startServing(configuration);
 
@@ -178,12 +230,16 @@ immutabix.startServer = (configuration) => {
         immutabix.set(command.path, command.value);
         break;
 
-      case 'ref':
+      case 'unref':
+        immutabix.unref(command.path, input.connectionId);
+        break;
 
+      case 'ref':
+        //  when a wrong path is given, return an error message
         if( !ROOT.hasIn(command.path) ){
 
           //  make the error message
-          let msg = {
+          var msg = {
                       command: 'ref',
                       path: command.path,
                       error: true
@@ -193,7 +249,8 @@ immutabix.startServer = (configuration) => {
           .pushMessage(input.connectionId, msg);
         }
 
-        let ref = immutabix.ref(command.path, input.connectionId);
+        //  go on with the referencing
+        immutabix.ref(command.path, input.connectionId);
 
         break;
     }
