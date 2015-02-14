@@ -1,8 +1,11 @@
 
+'use strict';
+
 var WebSocketServer   = require('websocket').server,
     http              = require('http'),
-    log               = require('consologger'),
-    startServing,
+    log               = require('consologger');
+
+var startServing,
     DEBUG_FLAG        = false,
     callbacksForMessage,
     onMessage,
@@ -20,8 +23,9 @@ var WebSocketServer   = require('websocket').server,
 CONNECTIONS_MAP = new Map();
 
 
-//  -------------------------------------------------   connections
+//  -------------------------------------------------   (connections)
 connections = {};
+
 
 //  -------------------------------------------------   connections.get
 connections.get = (id) => {
@@ -66,7 +70,7 @@ checkIfCommand = (command) => {
 
   if(typeof command === 'object' && !!command){
 
-    let hasType = command.type === 'set' || command.type === 'ref';
+    let hasType = typeof command.type === 'string';
     let hasPathOrValue = Array.isArray(command.path) || command.value !== undefined;
 
     if( hasType && hasPathOrValue ){
@@ -83,8 +87,9 @@ pushMessage = (connectionId, message) => {
 
   //  check if that connection exists
   if(!connections.has(connectionId)){
-    DEBUG_FLAG &&
-    log.error(`Connection with id ${connectionId} was not found!`);
+    if(DEBUG_FLAG) {
+      log.error(`Connection with id ${connectionId} was not found!`);
+    }
     return false;
   }
 
@@ -92,8 +97,9 @@ pushMessage = (connectionId, message) => {
   .get(connectionId)
   .sendUTF( JSON.stringify(message) );
 
-  DEBUG_FLAG &&
-  log.info(`[Server][Connection id ${connectionId}] Message sent`);
+  if(DEBUG_FLAG) {
+    log.info(`[Server][Connection id ${connectionId}] Message sent`);
+  }
 };
 
 
@@ -137,9 +143,9 @@ onMessage.trigger = (input) => {
 //  -------------------------------------------------   offMessage
 offMessage = (callback) => {
 
-  var isInTheArray = callbacksForMessage.contains(callback);
+  var index = callbacksForMessage.indexOf(callback);
 
-  if(typeof callback === 'function' && isInTheArray){
+  if(typeof callback === 'function' && (index > -1)){
     callbacksForMessage
     .splice(index, 1);
   }
@@ -149,27 +155,21 @@ offMessage = (callback) => {
 //  -------------------------------------------------   httpHandler
 //  handle any HTTP requests we may have
 httpHandler = (request, response) => {
-  DEBUG_FLAG &&
-  log.info((new Date()) + ' Received request for ' + request.url);
+  if(DEBUG_FLAG) {
+    log.info((new Date()) + ' Received request for ' + request.url);
+  }
   response.writeHead(404);
   response.end();
 };
 
 
-// // =========================================================  immutabixServer
-// immutabixServer = () => {
+//  -------------------------------------------------   startServing
+//  start an HTTP server
+//  start a websocket server
 //
-//   var start,
-//       DEBUG_FLAG = false,
-//       setDebug;
-
-
-  //  start an HTTP server
-  //  start a websocket server
-  //
-  //  - when a new websocket connection is made, the id is added on the map
-  //  - when a message is received, onMessage.trigger is called
-  //    with connection id and the message
+//  - when a new websocket connection is made, the id is added on the map
+//  - when a message is received, onMessage.trigger is called
+//    with connection id and the message
 startServing = (configuration) => {
 
   if(typeof configuration.DEBUG_FLAG === 'boolean'){
@@ -194,7 +194,7 @@ startServing = (configuration) => {
   });
 
   // put logic here to detect whether the specified origin is allowed.
-  const originIsAllowed = (origin) => { return true; };
+  const originIsAllowed = (/*origin*/) => { return true; };
 
   wsServer
   .on('request', (request) => {
@@ -202,18 +202,22 @@ startServing = (configuration) => {
     if (!originIsAllowed(request.origin)) {
       // Make sure we only accept requests from an allowed origin
       request.reject();
-      DEBUG_FLAG &&
-      log.error((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+      if(DEBUG_FLAG) {
+        log.error((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+      }
       return;
     }
 
     var connection = request.accept('echo-protocol', request.origin),
         connectionId = getId.next().value;
 
+    //  set the new conectionId in the map,
+    //  and keep the reference to that connection
     connections.set(connectionId, connection);
 
-    DEBUG_FLAG &&
-    log.info(`${(new Date())}\n[Server] Websocket connection accepted`);
+    if(DEBUG_FLAG) {
+      log.info(`${(new Date())}\n[Server] Websocket connection accepted`);
+    }
 
     connection
     .on('message', (message) => {
@@ -222,15 +226,17 @@ startServing = (configuration) => {
 
       if (message.type === 'utf8') {
 
-        DEBUG_FLAG &&
-        log.data('[Server] Received Message: ' + message.utf8Data);
+        if(DEBUG_FLAG) {
+          log.data('[Server] Received Message: ' + message.utf8Data);
+        }
 
-        messageData = message.utf8Data
+        messageData = message.utf8Data;
       }
       else if (message.type === 'binary') {
 
-        DEBUG_FLAG &&
-        log.data('[Server] Received Binary Message of ' + message.binaryData.length + ' bytes');
+        if(DEBUG_FLAG) {
+          log.data('[Server] Received Binary Message of ' + message.binaryData.length + ' bytes');
+        }
 
         messageData = message.binaryData;
       }
@@ -242,21 +248,23 @@ startServing = (configuration) => {
     });
 
     connection
-    .on('close', (reasonCode, description) => {
-      DEBUG_FLAG &&
-      log.warning((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+    .on('close', (/*reasonCode, description*/) => {
+      if(DEBUG_FLAG) {
+        log.warning((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+      }
       connections.delete(connectionId);
     });
   });
 };
 
 
+//  -------------------------------------------------   setDebug
 setDebug = (boolean) => {
   DEBUG_FLAG = !!boolean;
 };
 
 
-
+//  =================================================================== exports
 module.exports = {
   startServing: startServing,
   onMessage: onMessage,

@@ -1,32 +1,31 @@
 {
   "name": "immutabix",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "make-space": "rm -rf dist && mkdir dist",
-    "build-js": "6to5 --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants --source-maps ./src --out-dir ./dist",
-    "build": "npm run make-space && npm run build-js",
-    "test": "mocha test/suite.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/AntouanK/immutabix.git"
-  },
   "author": "Antonis Karamitros @antouank",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/AntouanK/immutabix/issues"
   },
-  "homepage": "https://github.com/AntouanK/immutabix",
   "dependencies": {
     "consologger": "^0.1.41",
     "immutable": "^3.6.2",
     "websocket": "^1.0.17"
   },
   "devDependencies": {
-    "6to5": "^3.5.0",
+    "6to5": "^3.6.2",
     "mocha": "^2.1.0",
-    "should": "^4.6.5"
+    "should": "^5"
+  },
+  "homepage": "https://github.com/AntouanK/immutabix",
+  "license": "ISC",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AntouanK/immutabix.git"
+  },
+  "scripts": {
+    "build": "npm run make-space && npm run build-js",
+    "build-js": "6to5 --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants --source-maps ./src --out-dir ./dist",
+    "make-space": "rm -rf dist && mkdir dist",
+    "test": "mocha test/suite.js && mocha test/suite.2.js"
   }
 }
