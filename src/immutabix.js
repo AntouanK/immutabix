@@ -44,9 +44,17 @@ triggerListeners = () => {
 
       var path = entry[0],
           prevVal = pathPreviousValueMap.get(path),
-          currVal = pathValueMap.get(path);
+          currVal = pathValueMap.get(path),
+          areSame = Immutable.is(prevVal, currVal);
 
-      return !Immutable.is(prevVal, currVal);
+      //  if the values are NOT the same,
+      if(!areSame){
+        //  set the previous to see what the current does,
+        //  so we don't end up triggering a change again
+        pathPreviousValueMap.set(path, currVal);
+      }
+
+      return !areSame;
     })
     .forEach( entry => {
 
