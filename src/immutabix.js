@@ -42,21 +42,22 @@ triggerListeners = () => {
   Immutable.Seq( pathConnectionMap.entries() )
     .filter( entry => {
 
-      let path = entry[0];
+      var path = entry[0],
+          prevVal = pathPreviousValueMap.get(path),
+          currVal = pathValueMap.get(path);
 
-      return pathPreviousValueMap.get(path) !== pathValueMap.get(path);
+      return !Immutable.is(prevVal, currVal);
     })
     .forEach( entry => {
 
-      let path = entry[0];
-      let connectionIds = entry[1];
+      var path = entry[0],
+          connectionIds = entry[1],
       //  make the message to be pushed to the listener
-      let msg = {
+          msg = {
                   command: 'ref',
                   path: path,
                   value: pathValueMap.get(path)
                 };
-
 
       connectionIds
       .forEach( (connectionId) => {

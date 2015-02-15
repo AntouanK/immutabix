@@ -41,19 +41,21 @@ toKey = function (path) {
 //  ----------------------------------------- triggerListeners
 triggerListeners = function () {
   Immutable.Seq(pathConnectionMap.entries()).filter(function (entry) {
-    var path = entry[0];
+    var path = entry[0],
+        prevVal = pathPreviousValueMap.get(path),
+        currVal = pathValueMap.get(path);
 
-    return pathPreviousValueMap.get(path) !== pathValueMap.get(path);
+    return !Immutable.is(prevVal, currVal);
   }).forEach(function (entry) {
-    var path = entry[0];
-    var connectionIds = entry[1];
+    var path = entry[0],
+        connectionIds = entry[1],
+
     //  make the message to be pushed to the listener
-    var msg = {
+    msg = {
       command: "ref",
       path: path,
       value: pathValueMap.get(path)
     };
-
 
     connectionIds.forEach(function (connectionId) {
       server.pushMessage(connectionId, msg);
