@@ -7,20 +7,20 @@ var Immutable = require('immutable'),
 var immutabix = {},
     ROOT,
     pathConnectionMap,
-    pathValueMap,
     pathPreviousValueMap,
     triggerListeners,
-    toKey;
+    toKey,
+    fromKey;
 
 //  main root reference
 ROOT = Immutable.Map({});
 
 pathConnectionMap     = new Map();
-pathValueMap          = new Map();
 pathPreviousValueMap  = new Map();
 
 toKey = (path) => { return path.join('/'); };
 
+fromKey = (path) => { return path.split('/'); };
 
 /**
 *                         API
@@ -44,7 +44,7 @@ triggerListeners = () => {
 
       var path = entry[0],
           prevVal = pathPreviousValueMap.get(path),
-          currVal = pathValueMap.get(path),
+          currVal = ROOT.getIn( fromKey(path) ),
           areSame = Immutable.is(prevVal, currVal);
 
       //  if the values are NOT the same,
@@ -64,7 +64,7 @@ triggerListeners = () => {
           msg = {
                   command: 'ref',
                   path: path,
-                  value: pathValueMap.get(path)
+                  value: ROOT.getIn( fromKey(path) ).toJS()
                 };
 
       connectionIds
@@ -100,13 +100,10 @@ immutabix.set = (path, value) => {
 
 
   //  map the previous value
-  pathPreviousValueMap.set(toKey(path), pathValueMap.get(toKey(path)));
+  pathPreviousValueMap.set(toKey(path), ROOT.getIn(path));
 
   //  set the value
   ROOT = ROOT.setIn(path, value);
-
-  //  map the current value
-  pathValueMap.set(toKey(path), value);
 
   //  trigger the listeners
   triggerListeners();
@@ -169,8 +166,6 @@ immutabix.registerOnPath = (path, connectionId) => {
   } else {
     //  set for the 1st time the path to that connection
     pathConnectionMap.set(key, [connectionId]);
-    //  set for the 1st time, the path to it's value reference
-    pathValueMap.set(key, ROOT.getIn(path));
   }
 
 };
