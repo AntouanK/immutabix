@@ -48,14 +48,11 @@ triggerListeners = function () {
         currVal = ROOT.getIn(fromKey(path)),
         areSame = Immutable.is(prevVal, currVal);
 
-    console.log("---> path:", path, currVal);
-
     //  if the values are NOT the same,
     if (!areSame) {
       //  set the previous to see what the current does,
       //  so we don't end up triggering a change again
       pathPreviousValueMap.set(path, currVal);
-      console.log("NOT THE SAME");
     }
 
     return !areSame;
@@ -117,8 +114,17 @@ immutabix.ref = function (path, connectionId) {
     throw new TypeError(".set() expects an Array as 1st argument");
   }
 
+  //  when a wrong path is given, return an error message
   if (!ROOT.hasIn(path)) {
-    return undefined;
+    //  make the error message
+    var msg = {
+      command: "ref",
+      path: path,
+      error: true
+    };
+
+    server.pushMessage(connectionId, msg);
+    return false;
   }
 
   immutabix.registerOnPath(path, connectionId);
@@ -225,18 +231,6 @@ immutabix.startServer = function (configuration) {
         break;
 
       case "ref":
-        //  when a wrong path is given, return an error message
-        if (!ROOT.hasIn(command.path)) {
-          //  make the error message
-          var msg = {
-            command: "ref",
-            path: command.path,
-            error: true
-          };
-
-          server.pushMessage(input.connectionId, msg);
-        }
-
         //  go on with the referencing
         immutabix.ref(command.path, input.connectionId);
 
