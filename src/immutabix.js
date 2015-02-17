@@ -117,8 +117,18 @@ immutabix.ref = (path, connectionId) => {
     throw new TypeError('.set() expects an Array as 1st argument');
   }
 
-  if(!ROOT.hasIn(path)){
-    return undefined;
+  //  when a wrong path is given, return an error message
+  if( !ROOT.hasIn(path) ){
+
+    //  make the error message
+    let msg = {
+                command: 'ref',
+                path: path,
+                error: true
+              };
+
+    server.pushMessage(connectionId, msg);
+    return false;
   }
 
   immutabix.registerOnPath(path, connectionId);
@@ -239,20 +249,6 @@ immutabix.startServer = (configuration) => {
         break;
 
       case 'ref':
-        //  when a wrong path is given, return an error message
-        if( !ROOT.hasIn(command.path) ){
-
-          //  make the error message
-          var msg = {
-                      command: 'ref',
-                      path: command.path,
-                      error: true
-                    };
-
-          server
-          .pushMessage(input.connectionId, msg);
-        }
-
         //  go on with the referencing
         immutabix.ref(command.path, input.connectionId);
 
