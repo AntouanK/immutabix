@@ -1,4 +1,3 @@
-
 "use strict";
 
 var WebSocketServer = require("websocket").server,
@@ -18,14 +17,10 @@ var startServing,
     httpHandler,
     setDebug;
 
-
-
 CONNECTIONS_MAP = new Map();
-
 
 //  -------------------------------------------------   (connections)
 connections = {};
-
 
 //  -------------------------------------------------   connections.get
 connections.get = function (id) {
@@ -51,7 +46,6 @@ connections["delete"] = function (id) {
   return deleteResult;
 };
 
-
 //  -------------------------------------------------   getId
 //  id generator
 getId = (function* () {
@@ -63,11 +57,12 @@ getId = (function* () {
   }
 })();
 
-
 //  -------------------------------------------------   checkIfCommand
 //  check if an incoming message is a valid command
 checkIfCommand = function (command) {
+
   if (typeof command === "object" && !!command) {
+
     var hasType = typeof command.type === "string";
     var hasPathOrValue = Array.isArray(command.path) || command.value !== undefined;
 
@@ -79,9 +74,9 @@ checkIfCommand = function (command) {
   return false;
 };
 
-
 //  -------------------------------------------------   pushMessage
 pushMessage = function (connectionId, message) {
+
   //  check if that connection exists
   if (!connections.has(connectionId)) {
     if (DEBUG_FLAG) {
@@ -97,12 +92,12 @@ pushMessage = function (connectionId, message) {
   }
 };
 
-
 //  keep an array with the callbacks
 callbacksForMessage = [];
 
 //  -------------------------------------------------   onMessage
 onMessage = function (callback) {
+
   if (typeof callback === "function") {
     callbacksForMessage.push(callback);
   }
@@ -110,6 +105,7 @@ onMessage = function (callback) {
 
 //  trigger for the callbacks
 onMessage.trigger = function (input) {
+
   if (typeof input !== "object" || typeof input.message !== "string") {
     return false;
   }
@@ -122,6 +118,7 @@ onMessage.trigger = function (input) {
 
   if (checkIfCommand(input.message)) {
     (function () {
+
       var newInput = {
         connectionId: input.connectionId,
         command: input.message
@@ -136,13 +133,13 @@ onMessage.trigger = function (input) {
 
 //  -------------------------------------------------   offMessage
 offMessage = function (callback) {
+
   var index = callbacksForMessage.indexOf(callback);
 
   if (typeof callback === "function" && index > -1) {
     callbacksForMessage.splice(index, 1);
   }
 };
-
 
 //  -------------------------------------------------   httpHandler
 //  handle any HTTP requests we may have
@@ -154,7 +151,6 @@ httpHandler = function (request, response) {
   response.end();
 };
 
-
 //  -------------------------------------------------   startServing
 //  start an HTTP server
 //  start a websocket server
@@ -163,6 +159,7 @@ httpHandler = function (request, response) {
 //  - when a message is received, onMessage.trigger is called
 //    with connection id and the message
 startServing = function (configuration) {
+
   if (typeof configuration.DEBUG_FLAG === "boolean") {
     DEBUG_FLAG = configuration.debug;
   }
@@ -190,6 +187,7 @@ startServing = function (configuration) {
   };
 
   wsServer.on("request", function (request) {
+
     if (!originIsAllowed(request.origin)) {
       // Make sure we only accept requests from an allowed origin
       request.reject();
@@ -211,15 +209,18 @@ startServing = function (configuration) {
     }
 
     connection.on("message", function (message) {
+
       var messageData;
 
       if (message.type === "utf8") {
+
         if (DEBUG_FLAG) {
           log.data("[Server] Received Message: " + message.utf8Data);
         }
 
         messageData = message.utf8Data;
       } else if (message.type === "binary") {
+
         if (DEBUG_FLAG) {
           log.data("[Server] Received Binary Message of " + message.binaryData.length + " bytes");
         }
@@ -242,12 +243,10 @@ startServing = function (configuration) {
   });
 };
 
-
 //  -------------------------------------------------   setDebug
 setDebug = function (boolean) {
   DEBUG_FLAG = !!boolean;
 };
-
 
 //  =================================================================== exports
 module.exports = {
@@ -258,4 +257,3 @@ module.exports = {
   setDebug: setDebug
 };
 /*origin*/ /*reasonCode, description*/
-//# sourceMappingURL=server.js.map

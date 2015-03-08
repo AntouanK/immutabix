@@ -1,4 +1,3 @@
-
 "use strict";
 
 var Immutable = require("immutable"),
@@ -39,10 +38,11 @@ fromKey = function (path) {
 *
 */
 
-
 //  ----------------------------------------- triggerListeners
 triggerListeners = function () {
+
   Immutable.Seq(pathConnectionMap.entries()).filter(function (entry) {
+
     var path = entry[0],
         prevVal = pathPreviousValueMap.get(path),
         currVal = ROOT.getIn(fromKey(path)),
@@ -57,6 +57,7 @@ triggerListeners = function () {
 
     return !areSame;
   }).forEach(function (entry) {
+
     var path = entry[0],
         connectionIds = entry[1],
 
@@ -73,21 +74,19 @@ triggerListeners = function () {
   });
 };
 
-
 //  ----------------------------------------- getRaw
 immutabix.getRaw = function () {
   return ROOT;
 };
-
 
 //  ----------------------------------------- resetRoot
 immutabix.resetRoot = function () {
   ROOT = Immutable.Map({});
 };
 
-
 //  ----------------------------------------- set
 immutabix.set = function (path, value) {
+
   if (!Array.isArray(path)) {
     throw new TypeError(".set() expects an Array as 1st argument");
   }
@@ -95,7 +94,6 @@ immutabix.set = function (path, value) {
   if (typeof value === "object") {
     value = Immutable.fromJS(value);
   }
-
 
   //  map the previous value
   pathPreviousValueMap.set(toKey(path), ROOT.getIn(path));
@@ -107,15 +105,16 @@ immutabix.set = function (path, value) {
   triggerListeners();
 };
 
-
 //  ----------------------------------------- ref
 immutabix.ref = function (path, connectionId) {
+
   if (!Array.isArray(path)) {
     throw new TypeError(".set() expects an Array as 1st argument");
   }
 
   //  when a wrong path is given, return an error message
   if (!ROOT.hasIn(path)) {
+
     //  make the error message
     var msg = {
       command: "ref",
@@ -131,9 +130,9 @@ immutabix.ref = function (path, connectionId) {
   triggerListeners();
 };
 
-
 //  ----------------------------------------- unref
 immutabix.unref = function (path, connectionId) {
+
   if (!Array.isArray(path)) {
     throw new TypeError(".set() expects an Array as 1st argument");
   }
@@ -141,9 +140,9 @@ immutabix.unref = function (path, connectionId) {
   immutabix.deregisterOnPath(path, connectionId);
 };
 
-
 //  ----------------------------------------- registerOnPath
 immutabix.registerOnPath = function (path, connectionId) {
+
   if (!Array.isArray(path)) {
     throw new Error(".registerOnPath(path, connectionId) needs `path` to be an Array");
   }
@@ -170,9 +169,9 @@ immutabix.registerOnPath = function (path, connectionId) {
   }
 };
 
-
 //  ----------------------------------------- deregisterOnPath
 immutabix.deregisterOnPath = function (path, connectionId) {
+
   if (!Array.isArray(path)) {
     throw new Error(".deregisterOnPath(path, connectionId) needs `path` to be an Array");
   }
@@ -186,11 +185,13 @@ immutabix.deregisterOnPath = function (path, connectionId) {
 
   //  if that key is already with one or more listeners...
   if (pathConnectionMap.has(key)) {
+
     var connectionsArray = pathConnectionMap.get(key);
     var indexOfOurConnection = connectionsArray.indexOf(connectionId);
 
     //  if our connection id is in that array, remove it
     if (indexOfOurConnection > -1) {
+
       //  remove that element
       connectionsArray.splice(indexOfOurConnection, 1);
 
@@ -199,9 +200,9 @@ immutabix.deregisterOnPath = function (path, connectionId) {
   }
 };
 
-
 //  ----------------------------------------- start server
 immutabix.startServer = function (configuration) {
+
   server.setDebug(!!configuration.debug);
 
   server.startServing(configuration);
@@ -213,6 +214,7 @@ immutabix.startServer = function (configuration) {
   //    command: <command>
   //  }
   server.onMessage(function (input) {
+
     if (input.command === undefined) {
       return false;
     }
@@ -239,7 +241,5 @@ immutabix.startServer = function (configuration) {
   });
 };
 
-
 //  ===========================================================   export
 module.exports = immutabix;
-//# sourceMappingURL=immutabix.js.map
