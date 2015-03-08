@@ -1,9 +1,8 @@
-
 "use strict";
 
 var WebSocketServer = require("websocket").server,
     http = require("http"),
-    Consologger = require("consologger");
+    log = require("consologger");
 
 var startServing,
     DEBUG_FLAG = false,
@@ -16,18 +15,12 @@ var startServing,
     pushMessage,
     checkIfCommand,
     httpHandler,
-    setDebug,
-    log;
-
-
-log = new Consologger();
+    setDebug;
 
 CONNECTIONS_MAP = new Map();
 
-
 //  -------------------------------------------------   (connections)
 connections = {};
-
 
 //  -------------------------------------------------   connections.get
 connections.get = function (id) {
@@ -53,7 +46,6 @@ connections["delete"] = function (id) {
   return deleteResult;
 };
 
-
 //  -------------------------------------------------   getId
 //  id generator
 getId = (function* () {
@@ -65,11 +57,12 @@ getId = (function* () {
   }
 })();
 
-
 //  -------------------------------------------------   checkIfCommand
 //  check if an incoming message is a valid command
 checkIfCommand = function (command) {
+
   if (typeof command === "object" && !!command) {
+
     var hasType = typeof command.type === "string";
     var hasPathOrValue = Array.isArray(command.path) || command.value !== undefined;
 
@@ -81,13 +74,13 @@ checkIfCommand = function (command) {
   return false;
 };
 
-
 //  -------------------------------------------------   pushMessage
 pushMessage = function (connectionId, message) {
+
   //  check if that connection exists
   if (!connections.has(connectionId)) {
     if (DEBUG_FLAG) {
-      log.red(`Connection with id ${ connectionId } was not found!`).print();
+      log.error(`Connection with id ${ connectionId } was not found!`);
     }
     return false;
   }
@@ -95,16 +88,16 @@ pushMessage = function (connectionId, message) {
   connections.get(connectionId).sendUTF(JSON.stringify(message));
 
   if (DEBUG_FLAG) {
-    log.blue(`[Server][Connection id ${ connectionId }] Message sent`).print();
+    log.info(`[Server][Connection id ${ connectionId }] Message sent`);
   }
 };
-
 
 //  keep an array with the callbacks
 callbacksForMessage = [];
 
 //  -------------------------------------------------   onMessage
 onMessage = function (callback) {
+
   if (typeof callback === "function") {
     callbacksForMessage.push(callback);
   }
@@ -112,6 +105,7 @@ onMessage = function (callback) {
 
 //  trigger for the callbacks
 onMessage.trigger = function (input) {
+
   if (typeof input !== "object" || typeof input.message !== "string") {
     return false;
   }
@@ -124,6 +118,7 @@ onMessage.trigger = function (input) {
 
   if (checkIfCommand(input.message)) {
     (function () {
+
       var newInput = {
         connectionId: input.connectionId,
         command: input.message
@@ -138,6 +133,7 @@ onMessage.trigger = function (input) {
 
 //  -------------------------------------------------   offMessage
 offMessage = function (callback) {
+
   var index = callbacksForMessage.indexOf(callback);
 
   if (typeof callback === "function" && index > -1) {
@@ -145,17 +141,15 @@ offMessage = function (callback) {
   }
 };
 
-
 //  -------------------------------------------------   httpHandler
 //  handle any HTTP requests we may have
 httpHandler = function (request, response) {
   if (DEBUG_FLAG) {
-    log.blue(new Date() + " Received request for " + request.url).print();
+    log.info(new Date() + " Received request for " + request.url);
   }
   response.writeHead(404);
   response.end();
 };
-
 
 //  -------------------------------------------------   startServing
 //  start an HTTP server
@@ -165,6 +159,7 @@ httpHandler = function (request, response) {
 //  - when a message is received, onMessage.trigger is called
 //    with connection id and the message
 startServing = function (configuration) {
+
   if (typeof configuration.DEBUG_FLAG === "boolean") {
     DEBUG_FLAG = configuration.debug;
   }
@@ -192,6 +187,7 @@ startServing = function (configuration) {
   };
 
   wsServer.on("request", function (request) {
+
     if (!originIsAllowed(request.origin)) {
       // Make sure we only accept requests from an allowed origin
       request.reject();
@@ -209,21 +205,24 @@ startServing = function (configuration) {
     connections.set(connectionId, connection);
 
     if (DEBUG_FLAG) {
-      log.blue(`${ new Date() }\n[Server] Websocket connection accepted`).print();
+      log.info(`${ new Date() }\n[Server] Websocket connection accepted`);
     }
 
     connection.on("message", function (message) {
+
       var messageData;
 
       if (message.type === "utf8") {
+
         if (DEBUG_FLAG) {
-          log.grey("[Server] Received Message: " + message.utf8Data).print();
+          log.data("[Server] Received Message: " + message.utf8Data);
         }
 
         messageData = message.utf8Data;
       } else if (message.type === "binary") {
+
         if (DEBUG_FLAG) {
-          log.grey("[Server] Received Binary Message of " + message.binaryData.length + " bytes").print();
+          log.data("[Server] Received Binary Message of " + message.binaryData.length + " bytes");
         }
 
         messageData = message.binaryData;
@@ -237,19 +236,17 @@ startServing = function (configuration) {
 
     connection.on("close", function () {
       if (DEBUG_FLAG) {
-        log.yellow(new Date() + " Peer " + connection.remoteAddress + " disconnected.").print();
+        log.warning(new Date() + " Peer " + connection.remoteAddress + " disconnected.");
       }
       connections["delete"](connectionId);
     });
   });
 };
 
-
 //  -------------------------------------------------   setDebug
 setDebug = function (boolean) {
   DEBUG_FLAG = !!boolean;
 };
-
 
 //  =================================================================== exports
 module.exports = {
@@ -260,4 +257,3 @@ module.exports = {
   setDebug: setDebug
 };
 /*origin*/ /*reasonCode, description*/
-//# sourceMappingURL=server.js.map

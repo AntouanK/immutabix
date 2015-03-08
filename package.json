@@ -1,6 +1,6 @@
 {
   "name": "immutabix",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Antonis Karamitros @antouank",
   "bugs": {
     "url": "https://github.com/AntouanK/immutabix/issues"
@@ -24,7 +24,8 @@
   },
   "scripts": {
     "build": "npm run make-space && npm run build-js",
-    "build-js": "./node_modules/babel/bin/babel/index.js --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants --source-maps ./src --out-dir ./dist",
+    "build-js": "./node_modules/babel/bin/babel/index.js --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants ./src --out-dir ./dist",
+    "build-js:watch": "./node_modules/babel/bin/babel/index.js -w --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants ./src --out-dir ./dist",
     "make-space": "rm -rf dist && mkdir dist",
     "test": "mocha test/suite.js && mocha test/suite.2.js"
   }
