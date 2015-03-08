@@ -2,7 +2,7 @@
 
 var WebSocketServer = require("websocket").server,
     http = require("http"),
-    log = require("consologger");
+    Consologger = require("consologger");
 
 var startServing,
     DEBUG_FLAG = false,
@@ -15,7 +15,10 @@ var startServing,
     pushMessage,
     checkIfCommand,
     httpHandler,
-    setDebug;
+    setDebug,
+    log;
+
+log = new Consologger();
 
 CONNECTIONS_MAP = new Map();
 
@@ -80,7 +83,7 @@ pushMessage = function (connectionId, message) {
   //  check if that connection exists
   if (!connections.has(connectionId)) {
     if (DEBUG_FLAG) {
-      log.error(`Connection with id ${ connectionId } was not found!`);
+      log.bgRed(`  Connection with id ${ connectionId } was not found!  `).print();
     }
     return false;
   }
@@ -88,7 +91,7 @@ pushMessage = function (connectionId, message) {
   connections.get(connectionId).sendUTF(JSON.stringify(message));
 
   if (DEBUG_FLAG) {
-    log.info(`[Server][Connection id ${ connectionId }] Message sent`);
+    log.green(`[Server][Connection id ${ connectionId }] Message sent`).print();
   }
 };
 
@@ -145,7 +148,7 @@ offMessage = function (callback) {
 //  handle any HTTP requests we may have
 httpHandler = function (request, response) {
   if (DEBUG_FLAG) {
-    log.info(new Date() + " Received request for " + request.url);
+    log.green(new Date() + " Received request for " + request.url).print();
   }
   response.writeHead(404);
   response.end();
@@ -192,7 +195,7 @@ startServing = function (configuration) {
       // Make sure we only accept requests from an allowed origin
       request.reject();
       if (DEBUG_FLAG) {
-        log.error(new Date() + " Connection from origin " + request.origin + " rejected.");
+        log.bgRed(" " + new Date() + " Connection from origin " + request.origin + " rejected. ").print();
       }
       return;
     }
@@ -205,7 +208,7 @@ startServing = function (configuration) {
     connections.set(connectionId, connection);
 
     if (DEBUG_FLAG) {
-      log.info(`${ new Date() }\n[Server] Websocket connection accepted`);
+      log.green(`${ new Date() }\n[Server] Websocket connection accepted`).print();
     }
 
     connection.on("message", function (message) {
@@ -215,14 +218,14 @@ startServing = function (configuration) {
       if (message.type === "utf8") {
 
         if (DEBUG_FLAG) {
-          log.data("[Server] Received Message: " + message.utf8Data);
+          log.grey("[Server] Received Message: " + message.utf8Data).print();
         }
 
         messageData = message.utf8Data;
       } else if (message.type === "binary") {
 
         if (DEBUG_FLAG) {
-          log.data("[Server] Received Binary Message of " + message.binaryData.length + " bytes");
+          log.grey("[Server] Received Binary Message of " + message.binaryData.length + " bytes").print();
         }
 
         messageData = message.binaryData;
@@ -236,7 +239,7 @@ startServing = function (configuration) {
 
     connection.on("close", function () {
       if (DEBUG_FLAG) {
-        log.warning(new Date() + " Peer " + connection.remoteAddress + " disconnected.");
+        log.yellow(new Date() + " Peer " + connection.remoteAddress + " disconnected.").print();
       }
       connections["delete"](connectionId);
     });
