@@ -6,13 +6,13 @@
     "url": "https://github.com/AntouanK/immutabix/issues"
   },
   "dependencies": {
-    "consologger": "^0.1.41",
-    "immutable": "^3.6.2",
-    "websocket": "^1.0.17"
+    "consologger": "^1",
+    "immutable": "^3",
+    "websocket": "^1"
   },
   "devDependencies": {
-    "6to5": "^3.6.5",
-    "mocha": "^2.1.0",
+    "babel": "^4",
+    "mocha": "^2",
     "should": "^5"
   },
   "homepage": "https://github.com/AntouanK/immutabix",
@@ -24,7 +24,7 @@
   },
   "scripts": {
     "build": "npm run make-space && npm run build-js",
-    "build-js": "6to5 --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants --source-maps ./src --out-dir ./dist",
+    "build-js": "./node_modules/babel/bin/babel/index.js --loose all --blacklist regenerator,es6.templateLiterals,es6.forOf,spec.blockScopedFunctions,es6.constants --source-maps ./src --out-dir ./dist",
     "make-space": "rm -rf dist && mkdir dist",
     "test": "mocha test/suite.js && mocha test/suite.2.js"
   }

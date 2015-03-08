@@ -207,7 +207,8 @@ immutabix.deregisterOnPath = (path, connectionId) => {
       //  remove that element
       connectionsArray.splice(indexOfOurConnection, 1);
 
-      pathConnectionMap.set(
+      pathConnectionMap
+      .set(
         key,
         connectionsArray
       );
